@@ -1,0 +1,32 @@
+name: Public game smoke test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  public-game:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Install browser test runtime
+        run: |
+          npm install --prefix /tmp/harbor-browser --no-audit --no-fund playwright
+          /tmp/harbor-browser/node_modules/.bin/playwright install --with-deps chromium
+      - name: Verify published game and cloud save
+        env:
+          HARBOR_PLAYWRIGHT_MODULE: /tmp/harbor-browser/node_modules/playwright
+          HARBOR_SMOKE_OUTPUT: public-test-results
+        run: node tests/public-smoke.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: public-game-test
+          path: public-test-results/
+          retention-days: 7
