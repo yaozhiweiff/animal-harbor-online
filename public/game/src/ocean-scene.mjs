@@ -9,7 +9,7 @@ export function createOceanGame(sim,bridge){
  const Phaser=window.Phaser,reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
  class OceanScene extends Phaser.Scene{
   constructor(){super('Ocean');this.buoys=new Map();this.boats=new Map();this.crates=new Map();this.fx=[];this.pulseEffects=[];this.clock=0;this.drawnZone=-1;this.pointer=null;}
-  preload(){CREW.forEach((c,i)=>this.load.image('crew-'+i,c.image));THEMES.forEach(t=>{this.load.image('skin-'+t.id,t.crewImage);this.load.image('port-'+t.id,t.portImage);});}
+  preload(){this.load.on('progress',progress=>bridge.onProgress?.(progress));CREW.forEach((c,i)=>this.load.image('crew-'+i,c.image));THEMES.forEach(t=>{this.load.image('skin-'+t.id,t.crewImage);this.load.image('port-'+t.id,t.portImage);});}
   create(){
    this.background=this.add.image(0,0,'__WHITE').setOrigin(0);this.effects=this.add.graphics().setDepth(4);this.foreground=this.add.graphics().setDepth(18);this.portDecoration=this.add.image(0,0,'__WHITE').setDepth(3).setVisible(false);
    FLOATS.forEach((f,i)=>{const tex=this.textures.createCanvas('float-'+i,FLOAT_ART_SIZE.width,FLOAT_ART_SIZE.height);drawFloat(tex.canvas,i);tex.refresh();});
@@ -63,6 +63,6 @@ export function createOceanGame(sim,bridge){
    if(this.pointer&&sim.stat('CURSOR','RADIUS')>0&&!sim.manualQTE()){f.lineStyle(1,0xfcffe6,.35);f.strokeCircle(this.pointer.x,this.pointer.y,25*this.unit+sim.stat('CURSOR','RADIUS')*this.unit);}bridge.afterUpdate(this);
   }
  }
- return new Phaser.Game({type:Phaser.AUTO,parent:'game',backgroundColor:'#77bdc5',antialias:true,resolution:Math.min(devicePixelRatio||1,2),banner:false,scale:{mode:Phaser.Scale.RESIZE,width:'100%',height:'100%'},scene:[OceanScene],audio:{noAudio:true},input:{activePointers:2},render:{roundPixels:false,powerPreference:'low-power'}});
+ return new Phaser.Game({type:Phaser.AUTO,parent:'game',backgroundColor:'#77bdc5',antialias:true,resolution:Math.min(devicePixelRatio||1,2),banner:false,scale:{mode:Phaser.Scale.RESIZE,width:'100%',height:'100%'},loader:{timeout:15000,maxParallelDownloads:6},scene:[OceanScene],audio:{noAudio:true},input:{activePointers:2},render:{roundPixels:false,powerPreference:'low-power'}});
 }
 

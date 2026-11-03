@@ -21,12 +21,12 @@ export const FLOATS=[
  {key:'JACKHAMMER',name:'动力绞盘浮漂',desc:'动力收线，高阶产出与暴击成长',color:'#b69f95',icon:'reel',maxRank:5,initialYield:6,yieldPerLevel:4},
 ];
 export const CREW=[
- {key:'MUSHROOM_GUY',name:'橘猫',ship:'木桨收鱼舟',role:'target',tier:1,cap:2,speed:.115,image:'assets/boats/a2-aquarium/t1-cat-boat.png',color:'#e5ab6f',desc:'选一个浮漂，驶近操作收鱼'},
- {key:'FROG_GUY',name:'柯基',ship:'涌浪联动艇',role:'wave',tier:2,cap:2,speed:.13,image:'assets/boats/a2-aquarium/t2-corgi-boat.png',color:'#85b8b6',desc:'巡航释放波纹，各稀有度联动渔获直接入库'},
- {key:'MOLE_GUY',name:'河狸',ship:'独立垂钓船',role:'independent',tier:3,cap:2,speed:.09,image:'assets/boats/a2-aquarium/t3-beaver-boat.png',color:'#aeb385',desc:'船载钓组独立连续捕鱼'},
- {key:'GOLEM_GUY',name:'棕熊',ship:'重型连钓船',role:'heavy',tier:4,cap:3,speed:.075,image:'assets/boats/a2-aquarium/t4-bear-boat.png',color:'#83aed0',desc:'重型连续作业，自动稀有 QTE'},
- {key:'DRUID_GUY',name:'水獭',ship:'潮汐补给船',role:'support',tier:5,cap:4,speed:.14,image:'assets/boats/a2-aquarium/t5-otter-boat.png',color:'#b69dcf',desc:'范围加速支援，自动稀有与史诗 QTE'},
- {key:'GHOST_GUY',name:'赤狐',ship:'星航巡钓船',role:'contact',tier:6,cap:5,speed:.16,remoteStorage:true,image:'assets/boats/a2-aquarium/t6-fox-boat.png',color:'#dbbd73',desc:'自动全部高稀有 QTE，无限载重，渔获远程入库'},
+ {key:'MUSHROOM_GUY',name:'橘猫',ship:'木桨收鱼舟',role:'target',tier:1,cap:2,speed:.115,image:'assets/boats/a2-aquarium/t1-cat-boat.webp',color:'#e5ab6f',desc:'选一个浮漂，驶近操作收鱼'},
+ {key:'FROG_GUY',name:'柯基',ship:'涌浪联动艇',role:'wave',tier:2,cap:2,speed:.13,image:'assets/boats/a2-aquarium/t2-corgi-boat.webp',color:'#85b8b6',desc:'巡航释放波纹，各稀有度联动渔获直接入库'},
+ {key:'MOLE_GUY',name:'河狸',ship:'独立垂钓船',role:'independent',tier:3,cap:2,speed:.09,image:'assets/boats/a2-aquarium/t3-beaver-boat.webp',color:'#aeb385',desc:'船载钓组独立连续捕鱼'},
+ {key:'GOLEM_GUY',name:'棕熊',ship:'重型连钓船',role:'heavy',tier:4,cap:3,speed:.075,image:'assets/boats/a2-aquarium/t4-bear-boat.webp',color:'#83aed0',desc:'重型连续作业，自动稀有 QTE'},
+ {key:'DRUID_GUY',name:'水獭',ship:'潮汐补给船',role:'support',tier:5,cap:4,speed:.14,image:'assets/boats/a2-aquarium/t5-otter-boat.webp',color:'#b69dcf',desc:'范围加速支援，自动稀有与史诗 QTE'},
+ {key:'GHOST_GUY',name:'赤狐',ship:'星航巡钓船',role:'contact',tier:6,cap:5,speed:.16,remoteStorage:true,image:'assets/boats/a2-aquarium/t6-fox-boat.webp',color:'#dbbd73',desc:'自动全部高稀有 QTE，无限载重，渔获远程入库'},
 ];
 const fishRows=[
  ['sardine','银沙丁',0,1,7,'#8ecbc5'],['clown','小丑鱼',0,1,9,'#eea05e'],['mackerel_bay','蓝纹竹荚鱼',0,1,8,'#8ab4bd'],['sea_bream','海湾小鲷',0,1,10,'#d3b4aa'],
