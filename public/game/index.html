@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#faf6ed">
+  <meta name="description" content="经营浮标渔场，和驾驶小船的动物一起钓鱼、返港、探索新海域。">
+  <title>萌兽渔港 · 动物船队 · 钓鱼经营版</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'%3E%3Crect width='80' height='80' rx='22' fill='%232b7474'/%3E%3Cpath d='M20 34V14l17 13h7l16-13v20a23 23 0 1 1-40 0' fill='%23edb37e'/%3E%3Ccircle cx='31' cy='44' r='3' fill='%232c4c50'/%3E%3Ccircle cx='50' cy='44' r='3' fill='%232c4c50'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./style.css">
+  <script src="./runtime-config.js"></script>
+  <script src="./vendor/phaser.min.js"></script>
+  <script type="module" src="./src/main.mjs"></script>
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div class="brand"><div class="brand-mark" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M10 21V8l10 8h8l10-8v13a16 16 0 1 1-28 0"/><path class="face" d="M17 25h1m12 0h1M21 31q3 4 6 0"/></svg></div><div><span class="eyebrow">LITTLE PAWS, BIG OCEAN</span><h1>萌兽渔港<span>钓鱼经营版</span></h1></div></div>
+      <div class="resources"><div class="resource"><i data-icon="coin"></i><div><span>港口金币</span><strong id="coins">30</strong></div></div><span class="resource-divider"></span><div class="resource fish-stat"><i data-icon="fish"></i><div><span>累计鱼获</span><strong id="catches">0<small> 条</small></strong></div></div><div class="resource production-stat" title="最近30秒新获得渔获的价值均值，按捕获时估值。含仓库、船舱、待运鱼箱和额外收藏；出售、返港不会重复计入。暂停不计时；启用不足30秒时，按已经过的有效时间计算。"><i data-icon="rate"></i><div><span>渔获产值 / 秒</span><strong id="production-rate">0.00<small> 金币</small></strong><small class="production-caption">近30秒 · 含未售</small><div class="production-peak-row"><span>最高峰值 <b id="production-peak">0.00</b>／秒</span><button id="leaderboard-button" title="查看渔获峰值前十名">排行榜 ↗</button></div></div></div></div>
+      <div class="top-actions"><span class="save-status" id="save-status">本地独立存档</span><button id="account-button" class="account-button" hidden>船长账号</button><button id="help-button" class="icon-button" aria-label="玩法说明" title="玩法说明">?</button><button id="pause-button" class="icon-button" aria-label="暂停游戏" title="暂停 / 继续"><i data-icon="pause"></i></button></div>
+    </header>
+    <main class="game-layout">
+      <section class="sea-panel" aria-label="渔场海面">
+        <div id="game" role="img" aria-label="海面上的漂移浮漂与动物小船。划过普通浮漂收鱼，点击稀有浮漂和上方操作条完成搏鱼；空格可辅助操作。"></div>
+        <div class="sea-top"><div class="location"><span class="location-dot"></span><span id="zone-name">晴湾浅海</span><span id="zone-number">01 / 03</span></div><button id="map-button" class="sea-map-button"><i data-icon="compass"></i>海域地图</button></div>
+        <button id="aquarium-button" class="aquarium-entry" aria-label="进入港口水族馆" hidden><img src="assets/aquarium/building.webp" alt=""><span>水族馆</span></button>
+        <div class="quest"><span class="quest-label">船长的小目标 <span id="quest-reward">+20 金币</span></span><strong id="quest-text">划过发光浮标，收获 3 条鱼</strong><div class="quest-bottom"><div class="progress-track"><span id="quest-fill"></span></div><span id="quest-progress">0 / 3</span></div></div>
+        <div id="qte-layer" aria-label="场景搏鱼操作区"></div><div id="discovery" class="discovery" role="status" hidden></div>
+        <div id="paused" class="paused" hidden><div><span class="eyebrow">TAKE A LITTLE BREAK</span><h2>小船歇一会儿</h2><p>你的渔场进度已经保存。</p><button id="resume-button" class="primary">继续出海</button></div></div>
+<div class="sea-bottom"><div class="sea-caption"><span class="caption-line"></span><div><b id="sea-caption">把小小渔港，交给毛茸茸的伙伴。</b><span id="sea-hint">划过普通浮漂收鱼 · 点击稀有浮漂搏鱼</span></div></div><div id="spell-bar" class="spell-bar"></div></div>
+        <div id="boot-message" class="boot-message">正在把小船推向大海…</div>
+      </section>
+      <aside class="harbor-panel">
+        <div class="panel-heading"><div><span class="eyebrow">YOUR LITTLE HARBOR</span><h2>船长事务所</h2></div><button id="research-button" class="research-entry"><i data-icon="compass"></i>研究<br><small>技能树</small></button></div>
+        <nav class="tabs" aria-label="港口面板"><button class="tab active" data-tab="shop"><i data-icon="rod"></i>渔具铺</button><button class="tab" data-tab="crew"><i data-icon="boat"></i>动物船队</button><button class="tab" data-tab="book"><i data-icon="book"></i>鱼图鉴</button></nav>
+        <div id="panel-content" class="panel-content"></div>
+        <div class="basket"><div class="basket-info"><span><i data-icon="basket"></i>码头仓库 <b id="basket-count">0</b></span><small id="basket-hint">手动普通渔获、全部联动渔获直接入库</small></div><button id="sell-button" disabled><span>出售鱼获</span><b id="basket-value">+0</b></button></div>
+        <div class="harbor-tools"><button id="cargo-button">鱼舱与收藏</button><button id="equipment-button">伙伴礼物</button></div><div class="harbor-note"><span class="note-dot"></span><span id="crew-note">邀请动物，让小船替你忙起来。</span></div>
+      </aside>
+    </main>
+    <footer class="footer"><span><span class="live-dot"></span> 一座慢慢长大的小渔港</span><span id="last-event">每条鱼，都值得一点点等待。</span><button id="settings-button">存档与设置</button></footer>
+  </div>
+
+  <div id="auth-overlay" class="auth-overlay" hidden>
+    <section class="auth-card" aria-label="注册或登录船长账号">
+      <div class="auth-story"><span class="eyebrow">LITTLE PAWS, A HARBOR OF YOUR OWN</span><h2>让每一次收获，<br>都找到归处。</h2><p>一群动物船员，一座属于你的港口。<br>带着珍藏的鱼，去拜访远方的朋友。</p><img src="assets/boats/a2-aquarium/t1-cat-boat.png" alt="橘猫船长"><div class="auth-features"><span>航程云存档</span><span>峰值排行榜</span><span>水族馆拜访</span></div></div>
+      <div class="auth-form-panel"><span class="eyebrow">WELCOME ABOARD, CAPTAIN</span><h2>欢迎来到萌兽渔港</h2><p>登录后继续航程，或注册一位新船长。</p><nav class="auth-tabs"><button type="button" class="selected" data-auth-mode="login">登录</button><button type="button" data-auth-mode="register">注册</button></nav><form id="auth-form"><label for="auth-name">船长名称<input id="auth-name" autocomplete="username" minlength="2" maxlength="16" placeholder="2～16位名称，不可重复" required></label><label for="auth-password">密码<input id="auth-password" type="password" autocomplete="current-password" minlength="8" maxlength="128" placeholder="至少8位密码" required></label><p id="auth-error" class="auth-error" role="status" aria-live="polite"></p><button id="auth-submit" class="primary" type="submit">登录，继续航程</button></form><small>船长名称、最高峰值和已开放水族馆的陈列会展示给其他玩家。请妥善保管密码。</small></div>
+    </section>
+  </div>
+  <div id="toast" class="toast" role="status" hidden></div>
+  <dialog id="modal"><div id="modal-content"></div><button id="close-modal" class="modal-close" aria-label="关闭">×</button></dialog>
+</body>
+</html>
+
+
+
