@@ -26,7 +26,7 @@ export const CREW=[
  {key:'MOLE_GUY',name:'河狸',ship:'独立垂钓船',role:'independent',tier:3,cap:2,speed:.09,image:'assets/boats/a2-aquarium/t3-beaver-boat.webp',color:'#aeb385',desc:'船载钓组独立连续捕鱼'},
  {key:'GOLEM_GUY',name:'棕熊',ship:'重型连钓船',role:'heavy',tier:4,cap:3,speed:.075,image:'assets/boats/a2-aquarium/t4-bear-boat.webp',color:'#83aed0',desc:'重型连续作业，自动稀有 QTE'},
  {key:'DRUID_GUY',name:'水獭',ship:'潮汐补给船',role:'support',tier:5,cap:4,speed:.14,image:'assets/boats/a2-aquarium/t5-otter-boat.webp',color:'#b69dcf',desc:'范围加速支援，自动稀有与史诗 QTE'},
- {key:'GHOST_GUY',name:'赤狐',ship:'星航巡钓船',role:'contact',tier:6,cap:5,speed:.16,remoteStorage:true,image:'assets/boats/a2-aquarium/t6-fox-boat.webp',color:'#dbbd73',desc:'自动全部高稀有 QTE，无限载重，渔获远程入库'},
+ {key:'GHOST_GUY',name:'赤狐',ship:'星航巡钓船',role:'contact',tier:6,cap:5,speed:.16,remoteStorage:true,recruitPriceMultiplier:10,image:'assets/boats/a2-aquarium/t6-fox-boat.webp',color:'#dbbd73',desc:'自动全部高稀有 QTE，无限载重，渔获远程入库'},
 ];
 const fishRows=[
  ['sardine','银沙丁',0,1,7,'#8ecbc5'],['clown','小丑鱼',0,1,9,'#eea05e'],['mackerel_bay','蓝纹竹荚鱼',0,1,8,'#8ab4bd'],['sea_bream','海湾小鲷',0,1,10,'#d3b4aa'],
@@ -101,7 +101,7 @@ export const RESEARCH_CATEGORY_REQUIREMENTS={
  GOLEM_GUY:['MOLE_GUY'],DRUID_STAFF:['PICKAXE'],DRUID_GUY:['GOLEM_GUY'],
  GHOST_GUY:['SPELL_ZAPS','DRUID_GUY'],JACKHAMMER:['DRUID_STAFF'],
  SPELL_ZAPS:['TRIDENT'],SPELL_RAIN:['DRUID_GUY'],SPELL_GOLDRUSH:['DRUID_STAFF'],
- CURSOR:['INVENTORY'],PASSIVE:['CURSOR'],DESCENT:['PASSIVE'],AQUARIUM:['DESCENT'],
+ CURSOR:['INVENTORY'],PASSIVE:['CURSOR'],DESCENT:['PASSIVE'],AQUARIUM:['PICKAXE'],
  BUFF_DIRT_MULTIPLY:['DRUID_STAFF'],BUFF_SPEED:['DRUID_GUY'],
 };
 

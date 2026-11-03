@@ -23,7 +23,7 @@
       <section class="sea-panel" aria-label="渔场海面">
         <div id="game" role="img" aria-label="海面上的漂移浮漂与动物小船。划过普通浮漂收鱼，点击稀有浮漂和上方操作条完成搏鱼；空格可辅助操作。"></div>
         <div class="sea-top"><div class="location"><span class="location-dot"></span><span id="zone-name">晴湾浅海</span><span id="zone-number">01 / 03</span></div><button id="map-button" class="sea-map-button"><i data-icon="compass"></i>海域地图</button></div>
-        <button id="aquarium-button" class="aquarium-entry" aria-label="进入港口水族馆" hidden><img src="assets/aquarium/building.webp" alt=""><span>水族馆</span></button>
+        <button id="aquarium-button" class="aquarium-entry is-locked" aria-label="港口水族馆未解锁，查看解锁研究"><img src="assets/aquarium/building.webp" alt=""><span>水族馆<small id="aquarium-entry-status">未解锁</small></span></button>
         <div class="quest"><span class="quest-label">船长的小目标 <span id="quest-reward">+20 金币</span></span><strong id="quest-text">划过发光浮标，收获 3 条鱼</strong><div class="quest-bottom"><div class="progress-track"><span id="quest-fill"></span></div><span id="quest-progress">0 / 3</span></div></div>
         <div id="qte-layer" aria-label="场景搏鱼操作区"></div><div id="discovery" class="discovery" role="status" hidden></div>
         <div id="paused" class="paused" hidden><div><span class="eyebrow">TAKE A LITTLE BREAK</span><h2>小船歇一会儿</h2><p>你的渔场进度已经保存。</p><button id="resume-button" class="primary">继续出海</button></div></div>

@@ -21,7 +21,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
-      - run: node --test tests/online-api.test.mjs
+      - run: node --test tests/simulation.test.mjs tests/aquarium.test.mjs tests/online-api.test.mjs
       - run: node scripts/prepare-pages.mjs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
