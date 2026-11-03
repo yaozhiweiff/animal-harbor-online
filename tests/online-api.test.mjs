@@ -26,3 +26,15 @@ test('aquarium visits require unlocking and reveal only sanitized public fish ex
 test('invalid credentials, cross-site writes and repeated login guesses are rejected',async t=>{
  const f=fixture(t);assert.equal((await f.call('/register','POST',{name:'x',password:'123'})).status,400);assert.equal((await f.call('/register','POST',{name:'crossOrigin',password:'password-1234'},'',{origin:'https://evil.test'})).status,403);for(let i=0;i<20;i++)assert.equal((await f.call('/login','POST',{name:'unknownUser',password:'password-1234'})).status,401);assert.equal((await f.call('/login','POST',{name:'unknownUser',password:'password-1234'})).status,429);
 });
+
+test('GitHub Pages uses allowed-origin bearer sessions without third-party cookies',async t=>{
+ const f=fixture(t),origin='https://yaozhiweiff.github.io',env={DB:f.db,ALLOWED_ORIGINS:origin};
+ const call=async(path,method='GET',body=null,token='',from=origin)=>handleHarborApi(new Request('https://harbor-api.workers.dev/api/harbor'+path,{method,headers:{origin:from,'sec-fetch-site':'cross-site',...(body?{'content-type':'application/json'}:{}),...(token?{authorization:'Bearer '+token}:{})},...(body?{body:JSON.stringify(body)}:{})}),env);
+ const options=await call('/progress','OPTIONS');assert.equal(options.status,204);assert.equal(options.headers.get('access-control-allow-origin'),origin);assert.match(options.headers.get('access-control-allow-headers'),/Content-Encoding/);assert.equal(options.headers.get('access-control-allow-credentials'),null);
+ const bad=await call('/register','POST',{name:'bad-origin',password:'test-password-908'},'','https://evil.test');assert.equal(bad.status,403);assert.equal(bad.headers.get('access-control-allow-origin'),null);assert.equal((await call('/progress','OPTIONS',null,'','https://evil.test')).status,403);
+ const reg=await call('/register','POST',{name:'pages-player',password:'test-password-908'});assert.equal(reg.status,200);const data=await reg.json();assert.match(data.sessionToken,/^[A-Za-z0-9_-]{43}$/);assert.equal(reg.headers.get('access-control-allow-origin'),origin);
+ assert.equal((await call('/me')).status,401);assert.equal((await call('/me','GET',null,data.sessionToken)).status,200);
+ const upload=await call('/progress','PUT',save(321),data.sessionToken);assert.equal(upload.status,200);const loaded=await (await call('/progress','GET',null,data.sessionToken)).json();assert.equal(loaded.peak,321);
+ const login=await (await call('/login','POST',{name:'pages-player',password:'test-password-908'})).json();assert.ok(login.sessionToken);await call('/logout','POST',{},login.sessionToken);assert.equal((await call('/me','GET',null,login.sessionToken)).status,401);
+ const sameOrigin=await register(f,'cookie-player');assert.equal(sameOrigin.body.sessionToken,undefined);
+});

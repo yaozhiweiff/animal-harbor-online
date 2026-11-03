@@ -45,3 +45,6 @@ yarn-error.log*
 .DS_Store
 
 /public-test-results/
+/.pages-dist/
+**/.wrangler/
+/backend/work/

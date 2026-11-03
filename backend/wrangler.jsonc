@@ -1,0 +1,21 @@
+{
+	"name": "animal-harbor-api",
+	"account_id": "d9356aed1321204141743957dad5257f",
+	"main": "worker.mjs",
+	"compatibility_date": "2026-11-03",
+	"workers_dev": true,
+	"observability": {
+		"enabled": true,
+		"head_sampling_rate": 0.1
+	},
+	"vars": {
+		"ALLOWED_ORIGINS": "https://yaozhiweiff.github.io,http://127.0.0.1:8772,http://127.0.0.1:8773"
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "animal-harbor",
+			"database_id": "f0b1f7d4-49bb-49ae-9600-f1f1bc35ae54"
+		}
+	]
+}
