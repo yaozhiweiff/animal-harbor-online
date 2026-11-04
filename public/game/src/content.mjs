@@ -43,10 +43,11 @@ export const ZONES=[
  {name:'珊瑚花园',en:'CORAL GARDEN',price:1800,catches:30,desc:'珊瑚间的鱼群与黄金锦鳞。'},
  {name:'蓝月远海',en:'BLUE MOON SEA',price:18000,catches:100,desc:'更高价值的远洋鱼与绯红龙宫使。'},
 ];
+export const SPELL_EFFECTS={chainChance:.5,worldSpeed:1.25,catchValue:1.25};
 export const SPELLS=[
- {key:'SPELL_ZAPS',name:'声呐共振',desc:'全体钓组连锁概率 +50 个百分点',icon:'compass',color:'#e6c56d'},
- {key:'SPELL_RAIN',name:'顺风潮',desc:'世界作业与航行加速；手动 QTE 保持现实时间',icon:'boat',color:'#83c6cd'},
- {key:'SPELL_GOLDRUSH',name:'丰收鱼汛',desc:'作业产出变为五倍',icon:'fish',color:'#dfba66'},
+ {key:'SPELL_ZAPS',name:'声呐共振',desc:`全体钓组连锁概率 +${SPELL_EFFECTS.chainChance*100} 个百分点`,detail:'连锁会随机收取已咬钩的其他浮漂，并可继续触发连锁；没有咬钩的浮漂不会被触发。',icon:'compass',color:'#e6c56d'},
+ {key:'SPELL_RAIN',name:'顺风潮',desc:`世界运行速度 ×${SPELL_EFFECTS.worldSpeed}`,detail:'浮漂等待、伙伴航行、作业、休息和自动 QTE 加快；手动 QTE 保持现实时间。技能倒计时也随世界速度推进。',icon:'boat',color:'#83c6cd'},
+ {key:'SPELL_GOLDRUSH',name:'丰收鱼汛',desc:`新捕获渔获价值 ×${SPELL_EFFECTS.catchValue}`,detail:'技能期间新捕获的渔获价值提升 25%，产出份数不变。可与其他产出增益叠加；已获得的渔获和额外宝物保持原价值。',icon:'fish',color:'#dfba66'},
 ];
 export const HATS=[
  {id:'idle',node:'HAT_IDLE_REDUCE',name:'勤勉船员帽',fish:'dawn',price:500,desc:'佩戴者作业休息归零'},
@@ -79,6 +80,12 @@ export function configureResearch(data){
  Object.assign(NODE_DATA,structuredClone(data.nodes));
  // Each float defines its initial yield and the increment shared by all its yield research branches.
  for(const f of FLOATS){const rows=NODE_DATA[f.key].DIRT_GAIN;rows[0].VALUE_INIT=f.initialYield;for(const row of rows){row.VALUE_INC=f.yieldPerLevel;row.VALUE_FINAL=(row.VALUE_INIT||0)+f.yieldPerLevel*(row.LEVELS||0);}}
+ // Match the sonar upgrade values and level caps, retaining each skill's gold prices.
+ const spellStats=['SPELL_DIGS','SPELL_DURATION','SPELL_STACKS'];
+ for(const owner of ['SPELL_RAIN','SPELL_GOLDRUSH'])for(const stat of spellStats){
+  const row=NODE_DATA[owner][stat][0],reference=NODE_DATA.SPELL_ZAPS[stat][0];
+  for(const field of ['LEVELS','VALUE_INIT','VALUE_INC','VALUE_FINAL'])row[field]=reference[field];
+ }
  REMOVED_RESEARCH.splice(0,REMOVED_RESEARCH.length,...data.research.filter(n=>REMOVED_RESEARCH_STATS.includes(n.stat)).map(n=>({...n,id:n.key})));
  // Fixed equipment and collection effects stay available, without research upgrades.
  for(const [owner,node]of Object.entries(NODE_DATA)){COLLECTION_BASE[owner]={chance:(node.LUCK_ITEM_DROP||[]).reduce((n,r)=>n+(r.VALUE_INIT||0),0),rarity:(node.LUCK_ITEM_RARITY||[]).reduce((n,r)=>n+(r.VALUE_INIT||0),0),sale:(node.SELL_ITEMS_DIRT||[]).reduce((n,r)=>n+(r.VALUE_INIT||0),0)};for(const stat of REMOVED_RESEARCH_STATS)delete node[stat];}
@@ -86,7 +93,10 @@ export function configureResearch(data){
  const retiredCargo=cargo.filter(n=>CREW.find(c=>c.key===n.node).remoteStorage);REMOVED_RESEARCH.push(...retiredCargo);for(const n of retiredCargo)delete NODE_DATA[n.node].CARGO_CAPACITY;
  const search=CREW.map(c=>{const raw={STAT_ID:0,LEVELS:10,VALUE_INIT:0,VALUE_INC:.1,DIRT_BASE:10000000,DIRT_GROWTH:1};NODE_DATA[c.key][SEARCH_STAT]=[raw];return {id:c.key+'.'+SEARCH_STAT+'.0',key:c.key+'.'+SEARCH_STAT+'.0',node:c.key,stat:SEARCH_STAT,effect:'同类伙伴搜索观赏鱼概率加成',dependency:null,raw,extension:true};});
  const aqRaw={STAT_ID:0,LEVELS:1,VALUE_INIT:0,VALUE_INC:1,DIRT_BASE:0,DIRT_GROWTH:1};NODE_DATA.AQUARIUM={SHOP_UNLOCK:[aqRaw]};const aquarium={id:'AQUARIUM.SHOP_UNLOCK.0',key:'AQUARIUM.SHOP_UNLOCK.0',node:'AQUARIUM',stat:'SHOP_UNLOCK',effect:'开放港口水族馆与观赏鱼',dependency:null,raw:aqRaw,extension:true,flatCost:0};
- RESEARCH.splice(0,RESEARCH.length,...data.research.filter(n=>!REMOVED_RESEARCH_STATS.includes(n.stat)).map(n=>({...n,id:n.key,raw:n.stat==='DIRT_GAIN'&&FLOATS.some(f=>f.key===n.node)?NODE_DATA[n.node].DIRT_GAIN[n.raw.STAT_ID]:n.raw})),...cargo.filter(n=>!retiredCargo.includes(n)),...search,aquarium);
+ RESEARCH.splice(0,RESEARCH.length,...data.research.filter(n=>!REMOVED_RESEARCH_STATS.includes(n.stat)).map(n=>{
+  const adjustedSpell=['SPELL_RAIN','SPELL_GOLDRUSH'].includes(n.node)&&spellStats.includes(n.stat),adjustedFloat=n.stat==='DIRT_GAIN'&&FLOATS.some(f=>f.key===n.node);
+  return {...n,id:n.key,raw:adjustedSpell||adjustedFloat?NODE_DATA[n.node][n.stat][n.raw.STAT_ID]:n.raw,...(adjustedSpell?{previousMaxLevel:n.raw.LEVELS}:{})};
+ }),...cargo.filter(n=>!retiredCargo.includes(n)),...search,aquarium);
 }
 export const OWNER_NAMES=Object.fromEntries([...FLOATS.map(x=>[x.key,x.name]),...CREW.map(x=>[x.key,x.name+'·'+x.ship]),...SPELLS.map(x=>[x.key,x.name]),['CURSOR','船长调度'],['PASSIVE','渔港通用研究'],['INVENTORY','收藏鱼舱'],['DESCENT','深海航线许可'],['AQUARIUM','港口水族馆'],['BUFF_DIRT_MULTIPLY','丰收饵增益'],['BUFF_SPEED','顺流增效']]);
 export const STAT_NAMES={DIRT_GAIN:'单次产出',ANIMATION_SCALE:'动作与航速',DIRT_GAIN_CRIT_CHANCE:'双倍鱼获',IDLE_TIME:'作业休息',STOMP_RAD:'作用范围',SHOP_UNLOCK:'类别解锁',RADIUS:'手动调度范围',SELL_ITEMS_DIRT:'收藏出售倍率',ZAP_CHANCE:'声呐连锁',ZAP_CRIT_CHANCE:'双目标连锁',SPELL_STACKS:'技能储层',SPELL_DIGS:'充能效率',SPELL_DURATION:'每层持续时间',DIG_COUNT:'每轮连钓次数',BUFF_TIME:'增益时长',BUFF_VALUE:'增益强度',COUNT_ADD:'商店数量扩充',DIRT_MULTIPLY:'产出倍率'};
