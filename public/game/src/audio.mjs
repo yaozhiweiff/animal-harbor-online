@@ -1,5 +1,6 @@
+import {createHarborMusic} from './music.mjs';
 const STORAGE_KEY='animal-harbor-audio-v1';
-const DEFAULTS={muted:false,ambience:.35,effects:.7};
+const DEFAULTS={muted:false,music:.45,ambience:.07,effects:.7};
 const COOLDOWN={catch:.09,place:.12,research:.14,discovery:.55,ornamental:.7,chain:.12,wave:.38};
 const PRIORITY={catch:0,place:1,chain:1,wave:1,research:2,discovery:3,ornamental:4};
 const MAX_VOICES=12;
@@ -58,9 +59,9 @@ export function createOceanAmbience(context,destination,noise=createNoiseBuffer(
 
 export class HarborAudio{
  constructor({onChange=()=>{}}={}){
-  this.onChange=onChange;this.preferences={...DEFAULTS};this.context=null;this.ready=false;this.unlocked=false;this.backgrounded=false;this.voices=new Set();this.lastPlayed=new Map();this.suspendTimer=null;this.cleanup=[];
+  this.onChange=onChange;this.preferences={...DEFAULTS};this.context=null;this.ready=false;this.unlocked=false;this.backgrounded=false;this.musicUnavailable=false;this.voices=new Set();this.lastPlayed=new Map();this.suspendTimer=null;this.cleanup=[];
   this.supported=!!(globalThis.AudioContext||globalThis.webkitAudioContext);
-  try{const p=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');if(p){this.preferences.muted=p.muted===true;for(const key of ['ambience','effects'])if(Number.isFinite(p[key]))this.preferences[key]=clamp(p[key]);}}catch{}
+  try{const p=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');if(p){this.preferences.muted=p.muted===true;for(const key of ['music','ambience','effects'])if(Number.isFinite(p[key]))this.preferences[key]=clamp(p[key]);if(!Number.isFinite(p.music)){if(Number.isFinite(p.ambience))this.preferences.ambience=clamp(p.ambience)*.2;this.persist();}}}catch{}
  }
  install(){
   const gesture=event=>{if(event.isTrusted&&(event.type==='pointerdown'||!event.repeat))this.unlock();};
@@ -75,22 +76,24 @@ export class HarborAudio{
   try{
    if(!this.context){
     const AudioContext=globalThis.AudioContext||globalThis.webkitAudioContext;this.context=new AudioContext({latencyHint:'interactive'});
-    const c=this.context;this.master=c.createGain();this.master.gain.value=0;this.effects=c.createGain();this.ambience=c.createGain();this.effects.gain.value=0;this.ambience.gain.value=0;
+    const c=this.context;this.master=c.createGain();this.master.gain.value=0;this.effects=c.createGain();this.ambience=c.createGain();this.music=c.createGain();this.musicDuck=c.createGain();this.effects.gain.value=0;this.ambience.gain.value=0;this.music.gain.value=0;this.musicDuck.connect(this.music);
     const limiter=c.createDynamicsCompressor();limiter.threshold.value=-12;limiter.knee.value=15;limiter.ratio.value=6;limiter.attack.value=.004;limiter.release.value=.2;
-    this.effects.connect(this.master);this.ambience.connect(this.master);this.master.connect(limiter);limiter.connect(c.destination);this.noise=createNoiseBuffer(c);this.ocean=createOceanAmbience(c,this.ambience,this.noise);
+    this.effects.connect(this.master);this.ambience.connect(this.master);this.music.connect(this.master);this.master.connect(limiter);limiter.connect(c.destination);this.noise=createNoiseBuffer(c);this.ocean=createOceanAmbience(c,this.ambience,this.noise);
    }
    this.unlocked=true;this.sync();
   }catch{this.supported=false;this.onChange();}
  }
  setReady(ready){this.ready=!!ready;this.sync();}
  setMuted(muted){this.preferences.muted=!!muted;this.persist();if(!muted)this.unlock();this.sync();this.onChange();}
- setVolume(channel,value){if(!['ambience','effects'].includes(channel)||!Number.isFinite(value))return;this.preferences[channel]=clamp(value);this.persist();this.unlock();this.sync();this.onChange();}
+ setVolume(channel,value){if(!['music','ambience','effects'].includes(channel)||!Number.isFinite(value))return;this.preferences[channel]=clamp(value);this.persist();this.unlock();this.sync();this.onChange();}
  persist(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(this.preferences));}catch{}}
  stopVoices(){for(const item of this.voices){clearTimeout(item.timer);item.voice.stop();}this.voices.clear();this.lastPlayed.clear();}
  sync(){
   if(!this.context)return;clearTimeout(this.suspendTimer);
-  const c=this.context,silent=this.preferences.muted||document.hidden||this.backgrounded,time=c.currentTime;
-  for(const [param,value]of [[this.master.gain,silent?0:1],[this.ambience.gain,this.ready?this.preferences.ambience:0],[this.effects.gain,this.ready?this.preferences.effects:0]]){param.cancelScheduledValues(time);param.setTargetAtTime(value,time,.025);}
+  const c=this.context,silent=this.preferences.muted||document.hidden||this.backgrounded;
+  if(this.ready&&!silent&&this.preferences.music>0&&!this.musicTrack&&!this.musicUnavailable)try{this.musicTrack=createHarborMusic(c,this.musicDuck);}catch{this.musicUnavailable=true;}
+  const time=c.currentTime;
+  for(const [param,value]of [[this.master.gain,silent?0:1],[this.music.gain,this.ready?this.preferences.music:0],[this.ambience.gain,this.ready?this.preferences.ambience:0],[this.effects.gain,this.ready?this.preferences.effects:0]]){param.cancelScheduledValues(time);param.setTargetAtTime(value,time,.025);}
   if(silent){this.stopVoices();this.suspendTimer=setTimeout(()=>{if(this.preferences.muted||document.hidden||this.backgrounded)c.suspend().catch(()=>{});},70);}
   else if(c.state==='suspended'||c.state==='interrupted')c.resume().catch(()=>{});
  }
@@ -98,7 +101,7 @@ export class HarborAudio{
   if(!this.context||!this.ready||!this.unlocked||this.preferences.muted||this.preferences.effects===0||document.hidden||this.backgrounded||!Object.hasOwn(COOLDOWN,kind))return false;
   const time=this.context.currentTime;if(time-(this.lastPlayed.get(kind)??-Infinity)<COOLDOWN[kind])return false;
   if(this.voices.size>=MAX_VOICES){const old=[...this.voices].find(item=>PRIORITY[item.kind]<PRIORITY[kind]);if(!old)return false;clearTimeout(old.timer);old.voice.stop();this.voices.delete(old);}
-  try{const voice=synthesizeSound(this.context,this.effects,kind,{noise:this.noise,level,pan,steps});if(!voice)return false;const item={kind,voice,timer:null};item.timer=setTimeout(()=>{voice.dispose();this.voices.delete(item);},(voice.duration+.12)*1000);this.voices.add(item);this.lastPlayed.set(kind,time);return true;}catch{return false;}
+  try{const voice=synthesizeSound(this.context,this.effects,kind,{noise:this.noise,level,pan,steps});if(!voice)return false;if(PRIORITY[kind]>=2){this.musicDuck.gain.cancelScheduledValues(time);this.musicDuck.gain.setTargetAtTime(.55,time,.025);this.musicDuck.gain.setTargetAtTime(1,time+.9,.12);}const item={kind,voice,timer:null};item.timer=setTimeout(()=>{voice.dispose();this.voices.delete(item);},(voice.duration+.12)*1000);this.voices.add(item);this.lastPlayed.set(kind,time);return true;}catch{return false;}
  }
  handle(events){
   if(!this.ready||!this.unlocked)return;
@@ -114,5 +117,5 @@ export class HarborAudio{
   if(ornamental)this.play('ornamental');else if(newSpecies)this.play('discovery');else if(caught)this.play('catch',{level:caught.source==='manual'?.9:.48,pan:(caught.x-.5)*.5});
   if(chain)this.play('chain',{steps:chain});if(wave)this.play('wave',{pan:(wave.x-.5)*.5});if(research)this.play('research');if(placed)this.play('place');
  }
- destroy(){this.stopVoices();clearTimeout(this.suspendTimer);this.ocean?.stop();for(const cleanup of this.cleanup)cleanup();this.context?.close().catch(()=>{});this.context=null;}
+ destroy(){this.stopVoices();clearTimeout(this.suspendTimer);this.ocean?.stop();this.musicTrack?.stop();for(const cleanup of this.cleanup)cleanup();this.context?.close().catch(()=>{});this.context=null;}
 }
