@@ -17,6 +17,8 @@ test('each fox recruitment costs ten times its former price and deducts that exa
  const poor=funded();poor.state.coins=23999;assert.equal(poor.buyBoat(5),false);assert.equal(poor.state.coins,23999);assert.equal(poor.count('boat',5),0);
 });
 test('full original research and fixed species rarities',()=>{assert.equal(RESEARCH.filter(n=>!n.extension).length+REMOVED_RESEARCH.filter(n=>!n.extension).length,131);assert.equal(RESEARCH.length,120);assert.equal(new Set(RESEARCH.map(n=>n.id)).size,120);assert.equal(FISH.length,30);assert.deepEqual([1,2,3,4,5].map(r=>FISH.filter(f=>f.rank===r).length),[12,6,6,3,3]);});
+
+test('first-catch audio metadata covers ordinary and rare species without replaying after restore',()=>{const s=new FishingSimulation(),r=s.state.rods[0];s.state.quest=10;for(const id of ['sardine','sardine','puffer'])s.registerCatch(s.fishLot(id,r),'manual',r);assert.deepEqual(s.drainEvents().filter(e=>e.type==='catch').map(e=>e.newSpecies),[true,false,true]);const restored=new FishingSimulation(s.serialize());restored.registerCatch(restored.fishLot('puffer',restored.state.rods[0]),'manual',restored.state.rods[0]);assert.equal(restored.drainEvents().find(e=>e.type==='catch').newSpecies,false);});
 test('blue fish delivery quest counts only delivered blue fish and awards its gold once',()=>{
  const index=QUESTS.findIndex(q=>q.field==='rarityDelivered'),s=new FishingSimulation();s.state.quest=index;s.random=()=>.9;const r=s.state.rods[0];assert.equal(s.questProgress().text,'交付一条蓝色稀有鱼');
  for(const id of ['sardine','goldline','moon','dawn']){s.deliver([s.fishLot(id,r)]);assert.equal(s.state.quest,index);assert.equal(s.questProgress().value,0);}

@@ -12,7 +12,7 @@ export const aquariumMethods={
   const gold=this.goldMedalChance(FISH_BY_ID[lot.id].zone),roll=this.random(),medal=roll<gold?3:roll<gold+.3?2:1,b=weightBands(lot.id);
   const min=medal===3?b.gold:medal===2?b.purple:b.min,max=medal===3?b.max:medal===2?b.gold-1:b.purple-1;
   const weight=min+Math.min(max-min,Math.floor(this.random()*(max-min+1)));
-  return this.recordOrnamental(lot.id,weight);
+  const result=this.recordOrnamental(lot.id,weight);if(result)this.emit('ornamentalCatch',result);return result;
  },
  recordOrnamental(id,weight){
   const f=FISH_BY_ID[id];if(!this.aquariumUnlocked()||!f||f.rank<3||!Number.isInteger(weight))return null;
