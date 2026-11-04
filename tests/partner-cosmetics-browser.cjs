@@ -1,0 +1,64 @@
+const {chromium}=require(process.env.HARBOR_PLAYWRIGHT_MODULE||'playwright');
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const base=process.env.HARBOR_TEST_URL||'http://127.0.0.1:8766/',out=process.env.HARBOR_TEST_OUTPUT||'test-results',results=[],errors=[];
+fs.mkdirSync(out,{recursive:true});
+let browser;
+const check=(name,ok)=>{assert.ok(ok,name);results.push(name);console.log('PASS '+name);};
+const choice=(p,id,kind='crew')=>p.locator(`[data-action="cosmetic"][data-kind="${kind}"][data-id="${id}"]`);
+const dismiss=p=>p.locator('#close-modal').click();
+const closeBrowser=()=>browser&&Promise.race([browser.close(),new Promise(resolve=>setTimeout(resolve,1500))]);
+async function unlock(p,zone){await p.evaluate(async zone=>{
+ const s=window.__harbor.sim,{FISH}=await import('./src/content.mjs'),{weightBands}=await import('./src/aquarium-data.mjs');
+ for(const f of FISH.filter(f=>f.zone===zone&&f.rank>=3))s.recordOrnamental(f.id,weightBands(f.id).min);
+ s.state.aquarium.notices=[];
+},zone);}
+async function shot(p,name){await p.waitForFunction(()=>[...document.querySelectorAll('#modal-content img')].every(i=>i.complete&&i.naturalWidth));await p.screenshot({path:path.join(out,name+'.png')});}
+(async()=>{
+ browser=await chromium.launch({...(process.env.HARBOR_BROWSER_CHANNEL?{channel:process.env.HARBOR_BROWSER_CHANNEL}:{}),headless:true,args:['--use-angle=swiftshader','--enable-unsafe-swiftshader']});
+ const context=await browser.newContext({viewport:{width:1440,height:950}}),p=await context.newPage();
+ p.on('pageerror',e=>errors.push(e.message));p.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+ await p.goto(base,{waitUntil:'networkidle'});await p.waitForFunction(()=>window.__harbor?.scene);
+ await p.evaluate(()=>{
+  const h=window.__harbor,s=h.sim;s.state.quest=10;s.state.coins=100000;s.state.skills['AQUARIUM.SHOP_UNLOCK.0']=1;
+  s.state.boats=[s.makeBoat(0),s.makeBoat(5)];s.state.boats.forEach((b,i)=>{b.x=.46+i*.2;b.y=.48;b.state='rest';b.timer=999;});
+  s.state.hats.luck=1;s.equipHat(s.state.boats[0].id,'luck');s.state.rods.forEach(r=>{r.state='waiting';r.remaining=999;});h.render();
+ });
+ await unlock(p,0);
+ const point=await p.evaluate(()=>{const h=window.__harbor,b=h.sim.state.boats[0];return {x:b.x*h.scene.w,y:b.y*h.scene.h};}),canvas=await p.locator('#game canvas').boundingBox();
+ await p.mouse.click(canvas.x+point.x,canvas.y+point.y);await p.locator('#equipment-boat').waitFor();
+ check('clicking a partner opens four outfit choices in its equipment dialog',await p.locator('.partner-cosmetics .cosmetic-option').count()===4);
+ check('blue medals unlock their outfit while unearned outfits stay locked',await choice(p,'sun').isEnabled()&&await choice(p,'coral').isDisabled()&&await choice(p,'moon').isDisabled());
+ check('a bound gift does not disable the unlocked appearance',await p.locator('[data-action="equip"][data-id="luck"]').isDisabled()&&await choice(p,'sun').isEnabled());
+ const initial=await p.evaluate(()=>({coins:window.__harbor.sim.state.coins,hats:JSON.stringify(window.__harbor.sim.state.hats)}));
+ await choice(p,'sun').click();
+ check('wearing an outfit stays in the partner dialog and marks it as worn',await p.locator('#equipment-boat').count()===1&&await choice(p,'sun').getAttribute('aria-pressed')==='true'&&(await choice(p,'sun').textContent()).includes('已穿戴'));
+ check('partner preview displays the crown together with the bound gift',await p.locator('.equipment-portrait .partner-skin').getAttribute('src')==='assets/aquarium/skin-sun.webp'&&await p.locator('.equipment-portrait [data-gift="luck"]').count()===1);
+ check('wearing preserves currency, gift inventory and the equipped hat',await p.evaluate(before=>{const s=window.__harbor.sim;return s.state.coins===before.coins&&JSON.stringify(s.state.hats)===before.hats&&s.state.boats[0].hat==='luck';},initial));
+ check('the corresponding sea receives the gold medal bonus',await p.evaluate(()=>{const s=window.__harbor.sim;return s.goldMedalChance(0)===.03&&s.goldMedalChance(1)===.01&&s.goldMedalChance(2)===.01;}));
+ await shot(p,'partner-cosmetics-desktop');await dismiss(p);
+ await p.waitForFunction(()=>{const h=window.__harbor;return h.scene.boats.size===2&&[...h.scene.boats.values()].every(v=>v.skin.visible&&v.skin.texture.key==='skin-sun');});
+ check('all sea partners show the selected outfit and the cat keeps its hat',await p.evaluate(()=>{const h=window.__harbor;return h.scene.boats.get(h.sim.state.boats[0].id).hat.visible;}));
+ await unlock(p,1);await p.locator('#equipment-button').click();await choice(p,'coral').click();
+ check('switching outfits moves the bonus without stacking two seas',await p.evaluate(()=>{const s=window.__harbor.sim;return s.goldMedalChance(0)===.01&&s.goldMedalChance(1)===.03&&s.state.boats[0].hat==='luck';}));
+ await p.locator('#equipment-boat').selectOption(await p.evaluate(()=>String(window.__harbor.sim.state.boats[1].id)));
+ check('changing partners retains the selected global outfit',await choice(p,'coral').getAttribute('aria-pressed')==='true'&&await p.locator('.equipment-portrait .partner-skin').count()===1);
+ await choice(p,'').click();
+ check('restoring the initial appearance removes the crown and its bonus',await p.locator('.equipment-portrait .partner-skin').count()===0&&await p.evaluate(()=>window.__harbor.sim.goldMedalChance(1)===.01&&window.__harbor.sim.state.boats[0].hat==='luck'));
+ await choice(p,'coral').click();await dismiss(p);
+ await p.locator('#settings-button').click();await choice(p,'sun').scrollIntoViewIfNeeded();
+ const scroll=await p.locator('#modal-content').evaluate(e=>e.scrollTop);await choice(p,'sun').click();
+ check('settings outfit selection retains scroll and keyboard focus',scroll>0&&await p.locator('#modal-content').evaluate((e,scroll)=>Math.abs(e.scrollTop-scroll)<2,scroll)&&await choice(p,'sun').evaluate(e=>document.activeElement===e));
+ check('settings and partner dialog share the same selected outfit',await p.evaluate(()=>window.__harbor.sim.state.cosmetics.selected.crew==='sun')&&await choice(p,'sun').getAttribute('aria-pressed')==='true');
+ await dismiss(p);await p.evaluate(()=>window.__harbor.save());await p.reload({waitUntil:'networkidle'});await p.waitForFunction(()=>window.__harbor?.scene);
+ await p.locator('#equipment-button').click();
+ check('saved blue medal unlocks and equipped outfit survive reload',await choice(p,'sun').isEnabled()&&await choice(p,'coral').isEnabled()&&await choice(p,'sun').getAttribute('aria-pressed')==='true');
+ check('reload also preserves the independently equipped gift',await p.locator('.equipment-portrait [data-gift="luck"]').count()===1);
+ await p.setViewportSize({width:390,height:844});await choice(p,'coral').click();
+ check('mobile players can wear an unlocked outfit in the partner dialog',await choice(p,'coral').getAttribute('aria-pressed')==='true'&&await p.locator('#equipment-boat').count()===1);
+ check('mobile outfit choices fit within the dialog width',await p.locator('.partner-cosmetics .cosmetic-options').evaluate(e=>{const r=e.getBoundingClientRect(),m=e.closest('#modal-content').getBoundingClientRect();return r.left>=m.left&&r.right<=m.right&&document.documentElement.scrollWidth<=innerWidth;}));
+ await shot(p,'partner-cosmetics-mobile');await dismiss(p);await p.locator('#settings-button').click();await choice(p,'sun').scrollIntoViewIfNeeded();
+ const mobileScroll=await p.locator('#modal-content').evaluate(e=>e.scrollTop);await choice(p,'sun').click();
+ check('mobile settings also retain scroll after an outfit change',mobileScroll>0&&await p.locator('#modal-content').evaluate((e,scroll)=>Math.abs(e.scrollTop-scroll)<2,mobileScroll));
+ check('no browser runtime or console errors',errors.length===0);
+ fs.writeFileSync(path.join(out,'partner-cosmetics-results.json'),JSON.stringify({passed:results.length,results,errors},null,2));await closeBrowser();process.exit(0);
+})().catch(async e=>{console.error(e);fs.writeFileSync(path.join(out,'partner-cosmetics-results.json'),JSON.stringify({passed:results.length,results,errors,error:e.stack},null,2));await closeBrowser();process.exit(1);});
